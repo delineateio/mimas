@@ -1,0 +1,2 @@
+pre-commit==2.6.0
+detect-secrets==0.14.2

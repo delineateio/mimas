@@ -1,0 +1,8 @@
+db:
+  mysql:
+    type: mysql
+  sqllite:
+    type: sqllite
+  postgres:
+    type: postgres
+    connection: postgres://postgres:postgres@postgres/postgres
