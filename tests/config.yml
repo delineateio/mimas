@@ -1,0 +1,33 @@
+string:
+  found: "yes"
+bool:
+  found: true
+  parse:
+    error: "efk"
+int:
+  found: 2
+  parse:
+    error: "xyx"
+duration:
+  found: 1s
+  parse:
+    error: "abc"
+uint:
+  found: 2
+  parse:
+    error: -1
+server:
+  cors:
+    allow_origins:
+      - https://www.delineate.dev
+      - https://www.delineate.pub
+      - https://www.delineate.io
+    allow_methods:
+      - GET
+      - POST
+    allow_headers:
+      - Origin
+    expose_headers:
+      - Content-Length
+    allow_credentials: true
+    max_age: 12h

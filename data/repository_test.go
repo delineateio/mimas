@@ -3,6 +3,7 @@ package common
 import (
 	"testing"
 
+	config "github.com/delineateio/mimas/config"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -10,9 +11,9 @@ const Default = "postgres"
 const None = "none"
 
 func loadConfigUnitTestConfig() {
-	var configurator = Configurator{
+	var configurator = config.Configurator{
 		Env:      "repository",
-		Location: "../config",
+		Location: "../tests",
 	}
 	configurator.Load()
 }

@@ -3,24 +3,25 @@ package server
 import (
 	"net/http"
 
-	c "github.com/delineateio/mimas/common"
+	log "github.com/delineateio/mimas/log"
+	messages "github.com/delineateio/mimas/messages"
 	"github.com/gin-gonic/gin"
 )
 
 // Dispatch initiates and handles the request and response
-func Dispatch(ctx *gin.Context, command c.Command) {
-	request := c.Request{
+func Dispatch(ctx *gin.Context, command messages.Command) {
+	request := messages.Request{
 		Body: make(map[string]interface{}),
 	}
 
 	err := ctx.ShouldBind(&request.Body)
 	if err != nil {
-		c.Error("request.bind.error", err)
+		log.Error("request.bind.error", err)
 		ctx.JSON(http.StatusBadRequest, nil)
 		return
 	}
 
-	var response c.Response
+	var response messages.Response
 	command(&request, &response)
 
 	// Adds the headers

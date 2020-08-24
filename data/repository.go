@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/avast/retry-go"
+	config "github.com/delineateio/mimas/config"
+	log "github.com/delineateio/mimas/log"
 	"github.com/jinzhu/gorm"
 
 	// Used internally by gorm to load the postgres driver
@@ -64,11 +66,11 @@ func NewRepository(name string) *Repository {
 		DBTypeKey:      "db." + name + ".type",
 		AllowedDBTypes: []string{"postgres"},
 		DefaultDBType:  DefaultDBType,
-		Attempts:       GetUint("db."+name+".retries.attempts", defaultRetries),
-		Delay:          GetDuration("db."+name+".retries.delay", defaultDelayMilliseconds*time.Millisecond),
-		MaxIdle:        GetInt("db."+name+".limits.maxIdle", defaultMaxIdle),
-		MaxOpen:        GetInt("db."+name+".limits.maxOpen", defaultMaxOpen),
-		MaxLifetime:    GetDuration("db."+name+".limits.maxLifetime", defaultMaxLifetime*time.Minute),
+		Attempts:       config.GetUint("db."+name+".retries.attempts", defaultRetries),
+		Delay:          config.GetDuration("db."+name+".retries.delay", defaultDelayMilliseconds*time.Millisecond),
+		MaxIdle:        config.GetInt("db."+name+".limits.maxIdle", defaultMaxIdle),
+		MaxOpen:        config.GetInt("db."+name+".limits.maxOpen", defaultMaxOpen),
+		MaxLifetime:    config.GetDuration("db."+name+".limits.maxLifetime", defaultMaxLifetime*time.Minute),
 	}
 }
 
@@ -86,11 +88,11 @@ func (r *Repository) dbTypeAllowed(expect string, list []string) bool {
 
 func (r *Repository) getDatabaseType() (string, error) {
 	var err error
-	dbType := GetString(r.DBTypeKey, DefaultDBType)
+	dbType := config.GetString(r.DBTypeKey, DefaultDBType)
 
 	if !r.dbTypeAllowed(dbType, r.AllowedDBTypes) {
 		err = errors.New("no db type was provided")
-		Error("db.connection.error", err)
+		log.Error("db.connection.error", err)
 		dbType = DefaultDBType
 	}
 
@@ -103,7 +105,7 @@ func (r *Repository) getConnectionString() (string, error) {
 
 	if r.Username == "" || r.Password == "" || r.DBName == "" {
 		err = errors.New("no connection string was provided")
-		Error("db.connection.error", err)
+		log.Error("db.connection.error", err)
 		return "", err
 	}
 
@@ -122,7 +124,7 @@ func (r *Repository) getInfo() (DBInfo, error) {
 		return DBInfo{}, err
 	}
 
-	Debug("db.connection", dbType+" - "+dbConnectionString)
+	log.Debug("db.connection", dbType+" - "+dbConnectionString)
 
 	info := DBInfo{
 		Type:             dbType,
@@ -146,7 +148,7 @@ func (r *Repository) Ping() error {
 
 	db, err := r.SetDBFunc()
 	if err != nil {
-		Error("db.connection", err)
+		log.Error("db.connection", err)
 		return err
 	}
 
@@ -185,11 +187,11 @@ func (r *Repository) Open() error {
 		retry.Attempts(r.Attempts),
 		retry.Delay(r.Delay),
 		retry.OnRetry(func(n uint, err error) {
-			Warn("db.open.error", "failed on attempt "+fmt.Sprint(n+1))
+			log.Warn("db.open.error", "failed on attempt "+fmt.Sprint(n+1))
 		}),
 	)
 	if err != nil {
-		Error("db.open.error", err)
+		log.Error("db.open.error", err)
 		return err
 	}
 
@@ -210,7 +212,7 @@ func (r *Repository) Migrate(entity interface{}) error {
 	err = r.Database.AutoMigrate(entity).Error
 	if err != nil {
 		// better to report the earlier error
-		Error("db.migrate.error", err)
+		log.Error("db.migrate.error", err)
 		_ = r.Close()
 		return err
 	}
@@ -218,7 +220,7 @@ func (r *Repository) Migrate(entity interface{}) error {
 	if err != nil {
 		return err
 	}
-	Info("db.migrate", "successfully migrated the db")
+	log.Info("db.migrate", "successfully migrated the db")
 	return nil
 }
 
@@ -231,7 +233,7 @@ func (r *Repository) Create(entity interface{}) error {
 
 	err = r.Database.Create(entity).Error
 	if err != nil {
-		Error("db.create", err)
+		log.Error("db.create", err)
 	}
 
 	err = r.Close()
@@ -246,7 +248,7 @@ func (r *Repository) Create(entity interface{}) error {
 func (r *Repository) Close() error {
 	err := r.Database.Close()
 	if err != nil {
-		Error("db.close.error", err)
+		log.Error("db.close.error", err)
 		return err
 	}
 

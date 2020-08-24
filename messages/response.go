@@ -1,16 +1,9 @@
-package common
+package messages
 
 import (
+	log "github.com/delineateio/mimas/log"
 	"github.com/mitchellh/mapstructure"
 )
-
-// Command performs the required action for the service
-type Command func(request *Request, response *Response)
-
-// Request generically represents inputs to the service
-type Request struct {
-	Body map[string]interface{}
-}
 
 // Response generically represents outputs from the service
 type Response struct {
@@ -22,7 +15,7 @@ type Response struct {
 func (r *Request) Map(entity interface{}) error {
 	err := mapstructure.Decode(r.Body, entity)
 	if err != nil {
-		Error("request was not understood", err)
+		log.Error("request was not understood", err)
 	}
 	return err
 }

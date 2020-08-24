@@ -24,7 +24,7 @@ func TestUTConfigNotFound(t *testing.T) {
 func loadUnitTestConfig() {
 	var configurator = Configurator{
 		Env:      "config",
-		Location: "../config",
+		Location: "../tests",
 	}
 	configurator.Load()
 }
@@ -130,4 +130,19 @@ func TestUTUintParseError(t *testing.T) {
 	value := GetUint("uint.parse.error", uint(1))
 	assert.Equal(t, value, uint(1))
 	assert.Equal(t, Exists("uint.parse.error"), true)
+}
+
+func TestUTGetStrings(t *testing.T) {
+	loadUnitTestConfig()
+	values := GetStrings("server.cors.allow_origins")
+	assert.Equal(t, len(values), 3)
+	assert.Equal(t, values[0], "https://www.delineate.dev")
+	assert.Equal(t, values[1], "https://www.delineate.pub")
+	assert.Equal(t, values[2], "https://www.delineate.io")
+}
+
+func TestUTGetStringsMissing(t *testing.T) {
+	loadUnitTestConfig()
+	values := GetStrings("server.cors.allow_origins.missing")
+	assert.Equal(t, len(values), 0)
 }

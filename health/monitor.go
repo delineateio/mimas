@@ -1,9 +1,10 @@
-package common
+package health
 
 import (
 	"time"
 
 	h "github.com/InVisionApp/go-health/v2"
+	log "github.com/delineateio/mimas/log"
 )
 
 // NewMonitor access the monitors
@@ -32,18 +33,18 @@ func (m *Monitor) AddCheck(name string, interval time.Duration, fatal bool, conf
 	} else {
 		err := m.health.Stop()
 		if err != nil {
-			Warn("healthcheck.stop.error", "There was an issue stopping the health checks but it's not terminal")
+			log.Warn("healthcheck.stop.error", "There was an issue stopping the health checks but it's not terminal")
 		}
 	}
 
 	err := m.health.AddCheck(&config)
 	if err != nil {
-		Error("healthcheck.add.error", err)
+		log.Error("healthcheck.add.error", err)
 	}
 
 	err = m.health.Start()
 	if err != nil {
-		Error("healthcheck.start.error", err)
+		log.Error("healthcheck.start.error", err)
 	}
 }
 

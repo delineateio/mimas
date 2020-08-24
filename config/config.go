@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"time"
 
+	common "github.com/delineateio/mimas/common"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 )
@@ -54,7 +55,7 @@ func (c *Configurator) LoadWithCallback(reload func(in fsnotify.Event)) {
 		viper.OnConfigChange(reload)
 
 		// This will use the new log level that has been set
-		Info("configuration.reload", "the configiration has been reload")
+		common.Info("configuration.reload", "the configiration has been reload")
 	}
 
 	// Panics if can't be read correctly
@@ -70,15 +71,15 @@ func GetBool(key string, defaultValue bool) bool {
 		raw := viper.GetString(key)
 		value, err := strconv.ParseBool(raw)
 		if err != nil {
-			Error(key, err)
+			common.Error(key, err)
 			return defaultValue
 		}
 
-		Debug(key, strconv.FormatBool(value))
+		common.Debug(key, strconv.FormatBool(value))
 		return value
 	}
 
-	Warn(key, "not found in the configuration file, using default")
+	common.Warn(key, "not found in the configuration file, using default")
 	return defaultValue
 }
 
@@ -86,11 +87,11 @@ func GetBool(key string, defaultValue bool) bool {
 func GetString(key, defaultValue string) string {
 	if viper.IsSet(key) {
 		value := viper.GetString(key)
-		Debug(key, value)
+		common.Debug(key, value)
 		return value
 	}
 
-	Debug(key, "not found in the configuration file, using default")
+	common.Debug(key, "not found in the configuration file, using default")
 	return defaultValue
 }
 
@@ -100,15 +101,15 @@ func GetInt(key string, defaultNumber int) int {
 		value := viper.GetString(key)
 		number, err := strconv.Atoi(value)
 		if err != nil {
-			Error(key, err)
+			common.Error(key, err)
 			return defaultNumber
 		}
 
-		Debug(key, strconv.Itoa(number))
+		common.Debug(key, strconv.Itoa(number))
 		return number
 	}
 
-	Debug(key, "not found in the configuration file, using default")
+	common.Debug(key, "not found in the configuration file, using default")
 	return defaultNumber
 }
 
@@ -119,15 +120,15 @@ func GetDuration(key string, defaultDuration time.Duration) time.Duration {
 		value := viper.GetString(key)
 		duration, err := time.ParseDuration(value)
 		if err != nil {
-			Error(key, err)
+			common.Error(key, err)
 			return defaultDuration
 		}
 
-		Debug(key, duration.String())
+		common.Debug(key, duration.String())
 		return duration
 	}
 
-	Debug(key, "not found in the configuration file, using default")
+	common.Debug(key, "not found in the configuration file, using default")
 	return defaultDuration
 }
 
@@ -137,16 +138,32 @@ func GetUint(key string, defaultNumber uint) uint {
 		value := viper.GetString(key)
 		number, err := strconv.ParseUint(value, 10, 64)
 		if err != nil {
-			Error(key, err)
+			common.Error(key, err)
 			return defaultNumber
 		}
 
-		Debug(key, strconv.Itoa(int(number)))
+		common.Debug(key, strconv.Itoa(int(number)))
 		return uint(number)
 	}
 
-	Debug(key, "not found in the configuration file, using default")
+	common.Debug(key, "not found in the configuration file, using default")
 	return defaultNumber
+}
+
+// GetStrings gets a list of values
+func GetStrings(key string) []string {
+	// Returns empty if key not found
+	if !Exists(key) {
+		return []string{}
+	}
+	wrapper := viper.Get(key)
+	objects := wrapper.([]interface{})
+	values := []string{}
+	// Converts fo strings
+	for _, object := range objects {
+		values = append(values, object.(string))
+	}
+	return values
 }
 
 // Exists confirms if the the key exists

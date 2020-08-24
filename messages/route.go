@@ -1,4 +1,4 @@
-package common
+package messages
 
 // Route for handling
 type Route struct {

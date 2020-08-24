@@ -4,7 +4,10 @@ import (
 	"os"
 	"strings"
 
-	c "github.com/delineateio/mimas/common"
+	config "github.com/delineateio/mimas/config"
+	data "github.com/delineateio/mimas/data"
+	log "github.com/delineateio/mimas/log"
+	messages "github.com/delineateio/mimas/messages"
 	"github.com/fsnotify/fsnotify"
 	"github.com/fvbock/endless"
 	"github.com/gin-gonic/gin"
@@ -16,16 +19,16 @@ import (
 type Server struct {
 	Env          string
 	Location     string
-	Configurator c.Configurator
-	Repository   c.IRepository
+	Configurator config.Configurator
+	Repository   data.IRepository
 	Mode         string
 	Router       *gin.Engine
-	Routes       []c.Route
+	Routes       []messages.Route
 	TimeOuts     TimeOuts
 }
 
 // NewServer creates a new server
-func NewServer(routes []c.Route) *Server {
+func NewServer(routes []messages.Route) *Server {
 	// Gets env
 	env := os.Getenv("DIO_ENV")
 	location := os.Getenv("DIO_LOCATION")
@@ -44,22 +47,22 @@ func NewServer(routes []c.Route) *Server {
 // Configure returns the router that will be returned
 func (s *Server) Configure() {
 	// Before do anything need to load the configuration
-	c.NewConfigurator(s.Env, s.Location).LoadWithCallback(s.reload)
+	config.NewConfigurator(s.Env, s.Location).LoadWithCallback(s.reload)
 
 	// Sets up the logger - this is abastracted into a separate func so
 	// that it can be called as part of the reload
 	s.setLogger()
 
 	// Logs the config level
-	c.Info("config.initialised", "the env config has been set to '"+s.Env+"'")
+	log.Info("config.initialised", "the env config has been set to '"+s.Env+"'")
 }
 
 func (s *Server) setLogger() {
 	// Gets the config
-	level := c.GetString("logging.level", "warn")
+	level := config.GetString("logging.level", "warn")
 
 	// Reloads
-	c.NewLogger(level).Load()
+	log.NewLogger(level).Load()
 }
 
 func (s *Server) reload(in fsnotify.Event) {
@@ -71,9 +74,9 @@ func (s *Server) reload(in fsnotify.Event) {
 }
 
 func (s *Server) setMode() {
-	mode := strings.ToLower(c.GetString("server.mode", "release"))
+	mode := strings.ToLower(config.GetString("server.mode", "release"))
 	if mode != gin.ReleaseMode && mode != gin.DebugMode {
-		c.Warn("server.mode", "Configuration incorrect, defaulted to 'release'")
+		log.Warn("server.mode", "Configuration incorrect, defaulted to 'release'")
 		mode = gin.ReleaseMode
 	}
 	s.Mode = mode
@@ -87,14 +90,14 @@ func (s *Server) CreateRouter() *gin.Engine {
 	router := gin.Default()
 
 	// Adds healthz at the route
-	c.Info("server.router.create", "created the GIN router")
+	log.Info("server.router.create", "created the GIN router")
 
 	// Adds the routes
 	if s.Routes != nil {
 		for _, route := range convertRoutes(s.Routes) {
 			router.Handle(route.Method, route.Path, route.HandlerFunc)
 		}
-		c.Info("server.routes.add", "routes have been added")
+		log.Info("server.routes.add", "routes have been added")
 	}
 
 	return router
@@ -105,7 +108,7 @@ func (s *Server) Start() {
 	// Migrates the database
 	err := s.Repository.Migrate()
 	if err != nil {
-		c.Warn("server.start", "there could be issues as the server did not start cleanly")
+		log.Warn("server.start", "there could be issues as the server did not start cleanly")
 	}
 
 	// Create router
@@ -113,13 +116,13 @@ func (s *Server) Start() {
 
 	// Configures the timeouts for the server
 	updateTimeOuts(s.TimeOuts)
-	c.Info("server.timeouts", "server timeout configuration completed")
+	log.Info("server.timeouts", "server timeout configuration completed")
 
 	// Starts the server
-	port := c.GetString("server.port", "1102")
+	port := config.GetString("server.port", "1102")
 	_ = endless.ListenAndServe(":"+port, s.Router)
 
 	if err != nil {
-		c.Warn("server.shutdown", "server has shutdown.  Goodbye!")
+		log.Warn("server.shutdown", "server has shutdown.  Goodbye!")
 	}
 }
