@@ -82,27 +82,6 @@ func (s *Server) setMode() {
 	s.Mode = mode
 }
 
-// CreateRouter returns the router that will be returned
-func (s *Server) CreateRouter() *gin.Engine {
-	// Misconfiguration can lead to the service not starting
-	// The wrapper func defaults to 'release' if that is the case
-	gin.SetMode(s.Mode)
-	router := gin.Default()
-
-	// Adds healthz at the route
-	log.Info("server.router.create", "created the GIN router")
-
-	// Adds the routes
-	if s.Routes != nil {
-		for _, route := range convertRoutes(s.Routes) {
-			router.Handle(route.Method, route.Path, route.HandlerFunc)
-		}
-		log.Info("server.routes.add", "routes have been added")
-	}
-
-	return router
-}
-
 // Start the server and ensure it's configured
 func (s *Server) Start() {
 	// Migrates the database

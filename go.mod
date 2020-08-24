@@ -8,6 +8,7 @@ require (
 	github.com/delineateio/mimas/common v0.0.0-20200823204239-4289f7dd3787
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/fvbock/endless v0.0.0-20170109170031-447134032cb6
+	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.6.3
 	github.com/jinzhu/gorm v1.9.16
 	github.com/lib/pq v1.8.0
