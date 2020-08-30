@@ -1,6 +1,8 @@
 package log
 
 import (
+	"fmt"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -64,7 +66,7 @@ func (l *Logger) Load() {
 	logger, _ := cfg.Build()
 	zap.ReplaceGlobals(logger)
 
-	Info("logger.initialised", "the logger level has been set to '"+l.Config+"'")
+	Info("logger.initialised", fmt.Sprintf("the logger level has been set to '%s'", l.Config))
 }
 
 // Debug writes a debug message to the underlying logger
@@ -88,7 +90,5 @@ func Error(event string, err error) {
 }
 
 func add(event, message string, operation logFunc) {
-	operation(event,
-		zap.String("message", message),
-	)
+	operation(event, zap.String("message", fmt.Sprintf("%s: %s", event, message)))
 }

@@ -1,4 +1,4 @@
-package server
+package containers
 
 import (
 	health "github.com/delineateio/mimas/health"
@@ -11,12 +11,12 @@ func convertRoutes(routes []messages.Route) []gin.RouteInfo {
 	var items = []gin.RouteInfo{
 		{
 			Method: "GET", Path: "/", HandlerFunc: func(ctx *gin.Context) {
-				Dispatch(ctx, health.Healthz)
+				dispatch(ctx, health.Healthz)
 			},
 		},
 		{
 			Method: "GET", Path: "/healthz", HandlerFunc: func(ctx *gin.Context) {
-				Dispatch(ctx, health.Healthz)
+				dispatch(ctx, health.Healthz)
 			},
 		},
 	}
@@ -31,7 +31,7 @@ func convertRoutes(routes []messages.Route) []gin.RouteInfo {
 func getGinRoute(route messages.Route) gin.RouteInfo {
 	return gin.RouteInfo{
 		Method: route.Method, Path: route.Path, HandlerFunc: func(ctx *gin.Context) {
-			Dispatch(ctx, route.Handler)
+			dispatch(ctx, route.Handler)
 		},
 	}
 }

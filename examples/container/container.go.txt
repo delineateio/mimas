@@ -1,0 +1,16 @@
+package server
+
+import (
+	containers "github.com/delineateio/mimas/containers"
+	messages "github.com/delineateio/mimas/messages"
+)
+
+func main() {
+	// Defines the routes for the service
+	routes := []messages.Route{
+		{Method: "POST", Path: "/customer", Handler: addCustomer},
+	}
+	instance := containers.NewServer(routes)
+	instance.Repository = NewCustomerRepository()
+	instance.Listen()
+}

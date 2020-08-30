@@ -1,11 +1,12 @@
-package server
+package containers
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
 	config "github.com/delineateio/mimas/config"
-	data "github.com/delineateio/mimas/data"
+	db "github.com/delineateio/mimas/database"
 	log "github.com/delineateio/mimas/log"
 	messages "github.com/delineateio/mimas/messages"
 	"github.com/fsnotify/fsnotify"
@@ -20,11 +21,10 @@ type Server struct {
 	Env          string
 	Location     string
 	Configurator config.Configurator
-	Repository   data.IRepository
-	Mode         string
-	Router       *gin.Engine
-	Routes       []messages.Route
-	TimeOuts     TimeOuts
+	Repository   db.IRepository
+	mode         string
+	router       *gin.Engine
+	routes       []messages.Route
 }
 
 // NewServer creates a new server
@@ -36,41 +36,22 @@ func NewServer(routes []messages.Route) *Server {
 	server := &Server{
 		Env:      env,
 		Location: location,
-		Routes:   routes,
+		routes:   routes,
 	}
 	server.Configure()
-	server.setMode()
-	server.TimeOuts = readTimeOuts()
 	return server
 }
 
 // Configure returns the router that will be returned
 func (s *Server) Configure() {
-	// Before do anything need to load the configuration
-	config.NewConfigurator(s.Env, s.Location).LoadWithCallback(s.reload)
-
-	// Sets up the logger - this is abastracted into a separate func so
-	// that it can be called as part of the reload
-	s.setLogger()
-
-	// Logs the config level
-	log.Info("config.initialised", "the env config has been set to '"+s.Env+"'")
+	config.NewConfigurator(s.Env, s.Location)
+	s.Configurator.LoadWithCallback(s.Reload)
 }
 
 func (s *Server) setLogger() {
-	// Gets the config
 	level := config.GetString("logging.level", "warn")
-
-	// Reloads
 	log.NewLogger(level).Load()
-}
-
-func (s *Server) reload(in fsnotify.Event) {
-	// Sets up the logger
-	s.setLogger()
-
-	// Sets the timeouts
-	setTimeOuts()
+	log.Info("config.initialised", fmt.Sprintf("the env config has been set to '%s'", s.Env))
 }
 
 func (s *Server) setMode() {
@@ -79,29 +60,42 @@ func (s *Server) setMode() {
 		log.Warn("server.mode", "Configuration incorrect, defaulted to 'release'")
 		mode = gin.ReleaseMode
 	}
-	s.Mode = mode
+	s.mode = mode
 }
 
-// Start the server and ensure it's configured
-func (s *Server) Start() {
+func (s *Server) setTimeOuts() {
+	// Sets the timeouts
+	timeOuts := newTimeOuts()
+	endless.DefaultReadTimeOut = timeOuts.read
+	endless.DefaultWriteTimeOut = timeOuts.write
+	endless.DefaultHammerTime = timeOuts.hammer
+	log.Info("server.timeouts", "server timeout configuration completed")
+}
+
+// Reload callback for if the server is restarted
+func (s *Server) Reload(in fsnotify.Event) {
+	s.setLogger()
+	s.setMode()
+	s.setTimeOuts()
+
+	config.NewConfigurator(s.Env, s.Location).LoadWithCallback(s.Reload)
+}
+
+// Listen the server and ensure it's configured
+func (s *Server) Listen() {
 	// Migrates the database
 	err := s.Repository.Migrate()
 	if err != nil {
 		log.Warn("server.start", "there could be issues as the server did not start cleanly")
 	}
 
-	// Create router
-	s.Router = s.CreateRouter()
-
-	// Configures the timeouts for the server
-	updateTimeOuts(s.TimeOuts)
-	log.Info("server.timeouts", "server timeout configuration completed")
-
-	// Starts the server
+	// Creates the server / router
+	s.router = s.createRouter()
 	port := config.GetString("server.port", "1102")
-	_ = endless.ListenAndServe(":"+port, s.Router)
+	_ = endless.ListenAndServe(":"+port, s.router)
 
+	// Confirms that the server has been shutdown
 	if err != nil {
-		log.Warn("server.shutdown", "server has shutdown.  Goodbye!")
+		log.Info("server.shutdown", "server has shutdown.  Goodbye!")
 	}
 }
