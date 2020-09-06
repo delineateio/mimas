@@ -4,14 +4,15 @@ import (
 	"net/http"
 
 	"github.com/delineateio/mimas/errors"
-	"github.com/delineateio/mimas/messages"
+	"github.com/delineateio/mimas/handlers"
+	"github.com/delineateio/mimas/msgs"
 	"github.com/gin-gonic/gin"
 )
 
-func dispatch(ctx *gin.Context, command messages.Command) {
+func dispatch(ctx *gin.Context, handler handlers.Handler) {
 	// Creates the request
 	errs := errors.NewErrors()
-	request, err := messages.NewRequest(ctx.Request.Method, ctx.Request.Header)
+	request, err := msgs.NewRequest(ctx.Request.Method, ctx.Request.Header)
 	errs.Add("request.create.error", err)
 
 	err = ctx.ShouldBind(&request.Body)
@@ -20,13 +21,13 @@ func dispatch(ctx *gin.Context, command messages.Command) {
 	if errs.HasErrors() {
 		ctx.Writer.WriteHeader(http.StatusBadRequest)
 	} else {
-		response := messages.NewJSONResponse()
-		command(request, response)
+		response := msgs.NewJSONResponse()
+		handler(request, response)
 		setResponse(ctx, response)
 	}
 }
 
-func setResponse(ctx *gin.Context, response *messages.Response) {
+func setResponse(ctx *gin.Context, response *msgs.Response) {
 	for key, value := range response.Headers {
 		ctx.Header(key, value)
 	}

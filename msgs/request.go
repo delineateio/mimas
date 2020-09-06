@@ -1,4 +1,4 @@
-package messages
+package msgs
 
 import (
 	log "github.com/delineateio/mimas/log"

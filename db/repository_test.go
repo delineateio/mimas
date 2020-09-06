@@ -94,5 +94,9 @@ func getInvalidRepository() (*Repository, error) {
 }
 
 func getRepository(name, username, password string) (*Repository, error) {
-	return NewRepository(name, username, password)
+	info, err := NewInfo(name, username, password)
+	if err != nil {
+		return nil, err
+	}
+	return NewRepository(info)
 }

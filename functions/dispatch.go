@@ -5,29 +5,30 @@ import (
 	"net/http"
 
 	e "github.com/delineateio/mimas/errors"
-	"github.com/delineateio/mimas/messages"
+	"github.com/delineateio/mimas/handlers"
+	"github.com/delineateio/mimas/msgs"
 )
 
-func dispatch(writer http.ResponseWriter, r *http.Request, command messages.Command) {
+func dispatch(writer http.ResponseWriter, r *http.Request, handler handlers.Handler) {
 	// Gets the request and binds
 	errs := e.NewErrors()
-	request, err := messages.NewRequest(r.Method, r.Header)
+	request, err := msgs.NewRequest(r.Method, r.Header)
 	errs.Add("request.bind.error", err)
 
-	binding := messages.NewBinding()
+	binding := msgs.NewBinding()
 	err = binding.Bind(r, request.Body)
 	errs.Add("request.bind.error", err)
 
 	if errs.HasErrors() {
 		writer.WriteHeader(http.StatusBadRequest)
 	} else {
-		response := messages.NewJSONResponse()
-		command(request, response)
+		response := msgs.NewJSONResponse()
+		handler(request, response)
 		writeResponse(writer, response, errs)
 	}
 }
 
-func writeResponse(w http.ResponseWriter, response *messages.Response, errs *e.Errors) {
+func writeResponse(w http.ResponseWriter, response *msgs.Response, errs *e.Errors) {
 	for key, value := range response.Headers {
 		w.Header().Add(key, value)
 	}

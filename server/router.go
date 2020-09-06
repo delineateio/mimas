@@ -18,11 +18,11 @@ func (s *Server) createRouter() *gin.Engine {
 
 	// Adds healthz at the route
 	log.Info("server.router.create", "created the GIN router")
-	s.routes = routes.AddDefaultRoutes(s.routes)
+	s.options.Routes = routes.AddDefaultRoutes(s.options.Routes)
 
 	// Adds the routes
-	if s.routes != nil {
-		for _, route := range convertRoutes(s.routes) {
+	if s.options.Routes != nil {
+		for _, route := range convertRoutes(s.options.Routes) {
 			router.Handle(route.Method, route.Path, route.HandlerFunc)
 		}
 		log.Info("server.routes.add", "routes have been added")

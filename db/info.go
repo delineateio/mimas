@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/delineateio/mimas/env"
 	e "github.com/delineateio/mimas/errors"
 )
 
@@ -19,6 +20,24 @@ type Info struct {
 	Type     string
 	Username string
 	Password string
+}
+
+// NewDefaultInfo creates database info type
+func NewDefaultInfo() (*Info, error) {
+	vars := env.NewEnv()
+	name, err := vars.ReadRequired("DB_NAME")
+	if err != nil {
+		return nil, err
+	}
+	username, err := vars.ReadRequired("DB_USERNAME")
+	if err != nil {
+		return nil, err
+	}
+	password, err := vars.ReadRequired("DB_PASSWORD")
+	if err != nil {
+		return nil, err
+	}
+	return NewInfo(name, username, password)
 }
 
 // NewInfo creates database info type

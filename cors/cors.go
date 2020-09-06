@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/delineateio/mimas/config"
-	"github.com/delineateio/mimas/messages"
+	"github.com/delineateio/mimas/msgs"
 )
 
 // Config provides the CORS config
@@ -21,7 +21,7 @@ type Config struct {
 func NewCORSConfig() *Config {
 	return &Config{
 		AllowOrigins:     config.GetStrings("server.cors.allow_origins", []string{"*"}),
-		AllowMethods:     config.GetStrings("server.cors.allow_methods", messages.GetValidMethods()),
+		AllowMethods:     config.GetStrings("server.cors.allow_methods", msgs.GetValidMethods()),
 		AllowHeaders:     config.GetStrings("server.cors.allow_headers", []string{}),
 		ExposeHeaders:    config.GetStrings("server.cors.expose_headers", []string{}),
 		AllowCredentials: config.GetBool("server.cors.allow_credentials", false),

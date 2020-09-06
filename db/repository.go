@@ -26,12 +26,17 @@ type Repository struct {
 	db       *sql.DB
 }
 
-// NewRepository returns production database access
-func NewRepository(name, username, password string) (*Repository, error) {
-	info, err := NewInfo(name, username, password)
+// NewDefaultRepository returns production database access
+func NewDefaultRepository() (*Repository, error) {
+	info, err := NewDefaultInfo()
 	if err != nil {
 		return nil, err
 	}
+	return NewRepository(info)
+}
+
+// NewRepository returns production database access
+func NewRepository(info *Info) (*Repository, error) {
 	return &Repository{
 		info:     info,
 		settings: NewSettings(info.Name),

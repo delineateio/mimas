@@ -6,9 +6,7 @@ import (
 
 	"github.com/delineateio/mimas/config"
 	"github.com/delineateio/mimas/db"
-	"github.com/delineateio/mimas/environment"
 	"github.com/delineateio/mimas/log"
-	"github.com/delineateio/mimas/routes"
 	"github.com/fvbock/endless"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/afero"
@@ -18,40 +16,49 @@ import (
 // Don't rely on server defaults as this could significant impact performance]
 // https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/
 type Server struct {
-	Env          string
-	Location     string
-	Configurator config.Configurator
-	Repository   db.IRepository
-	mode         string
-	router       *gin.Engine
-	routes       []routes.Route
+	options *Options
+	mode    string
+	router  *gin.Engine
 }
 
 // NewServer creates a new server
-func NewServer(current []routes.Route) *Server {
-	// Gets env
-	env := environment.NewEnv()
+func NewServer(opts *Options) *Server {
 	server := &Server{
-		Env:      env.Read("DIO_ENV", "io"),
-		Location: env.Read("DIO_LOCATION", "/config"),
-		routes:   current,
+		options: opts,
 	}
-	server.Configure()
+	config.NewConfigurator(opts.Env, opts.Location, afero.NewOsFs())
+	server.setLogger()
+	server.migrate()
 	return server
-}
-
-// Configure returns the router that will be returned
-func (s *Server) Configure() {
-	config.NewConfigurator(s.Env, s.Location, afero.NewOsFs())
-	s.setLogger()
-	s.setMode()
-	s.setTimeOuts()
 }
 
 func (s *Server) setLogger() {
 	level := config.GetString("logging.level", "warn")
 	log.NewLogger(level).Load()
-	log.Info("config.initialised", fmt.Sprintf("the env config has been set to '%s'", s.Env))
+	log.Info("config.initialised", fmt.Sprintf("the env config has been set to '%s'", s.options.Env))
+}
+
+func (s *Server) migrate() {
+	repo, err := db.NewDefaultRepository()
+	if err != nil {
+		log.Error("server.repository.error", err)
+	}
+	err = repo.Migrate(s.options.Entities)
+	if err != nil {
+		log.Error("server.repository.error", err)
+	}
+}
+
+// Listen the server and ensure it's configured
+func (s *Server) Listen() {
+	s.setMode()
+	s.setTimeOuts()
+	s.router = s.createRouter()
+	port := config.GetString("server.port", "1102")
+	err := endless.ListenAndServe(":"+port, s.router)
+	if err != nil {
+		log.Info("server.shutdown", "server has shutdown.  Goodbye!")
+	}
 }
 
 func (s *Server) setMode() {
@@ -64,29 +71,9 @@ func (s *Server) setMode() {
 }
 
 func (s *Server) setTimeOuts() {
-	// Sets the timeouts
 	timeOuts := newTimeOuts()
 	endless.DefaultReadTimeOut = timeOuts.read
 	endless.DefaultWriteTimeOut = timeOuts.write
 	endless.DefaultHammerTime = timeOuts.hammer
 	log.Info("server.timeouts", "server timeout configuration completed")
-}
-
-// Listen the server and ensure it's configured
-func (s *Server) Listen() {
-	// Migrates the database
-	err := s.Repository.Migrate()
-	if err != nil {
-		log.Warn("server.start", "there could be issues as the server did not start cleanly")
-	}
-
-	// Creates the server / router
-	s.router = s.createRouter()
-	port := config.GetString("server.port", "1102")
-	_ = endless.ListenAndServe(":"+port, s.router)
-
-	// Confirms that the server has been shutdown
-	if err != nil {
-		log.Info("server.shutdown", "server has shutdown.  Goodbye!")
-	}
 }

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/delineateio/mimas/handlers"
-	"github.com/delineateio/mimas/messages"
+	"github.com/delineateio/mimas/msgs"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,12 +22,12 @@ type TestObj struct {
 }
 
 // NonJSONHander is a handler that can be used for testing purposes
-func NonJSONHandler(request *messages.Request, response *messages.Response) {
+func NonJSONHandler(request *msgs.Request, response *msgs.Response) {
 	response.Body = "hello,world!"
 	response.Code = http.StatusOK
 }
 
-func JSONHandler(request *messages.Request, response *messages.Response) {
+func JSONHandler(request *msgs.Request, response *msgs.Response) {
 	response.Body = TestObj{Message: "hello,world!"}
 	response.Code = http.StatusOK
 }

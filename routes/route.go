@@ -7,20 +7,20 @@ import (
 
 	"github.com/delineateio/mimas/handlers"
 	"github.com/delineateio/mimas/log"
-	"github.com/delineateio/mimas/messages"
+	"github.com/delineateio/mimas/msgs"
 )
 
 // Route for handling
 type Route struct {
 	Method  string
 	Path    string
-	Handler messages.Command
+	Handler handlers.Handler
 }
 
 // NewRoute creates a new route with validation
-func NewRoute(method, path string, handler messages.Command) (*Route, error) {
+func NewRoute(method, path string, handler handlers.Handler) (*Route, error) {
 	// Validates the parameters before returning the routes
-	err := messages.ValidateMethod(method)
+	err := msgs.ValidateMethod(method)
 	if err != nil {
 		return nil, err
 	}
