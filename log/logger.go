@@ -20,17 +20,15 @@ type ILogger interface {
 // NewLogger creates an instance of the Logger
 func NewLogger(config string) *Logger {
 	return &Logger{
-		DefaultLevel: zapcore.WarnLevel,
-		Level:        getLevel(config),
-		Config:       config,
+		Config: config,
+		level:  getLevel(config),
 	}
 }
 
 // Logger is the implementation of the logger
 type Logger struct {
-	DefaultLevel zapcore.Level
-	Level        zapcore.Level
-	Config       string
+	Config string
+	level  zapcore.Level
 }
 
 func getLevel(config string) zapcore.Level {
@@ -49,7 +47,7 @@ func getLevel(config string) zapcore.Level {
 func (l *Logger) Load() {
 	cfg := zap.Config{
 		Encoding:         "json",
-		Level:            zap.NewAtomicLevelAt(l.Level),
+		Level:            zap.NewAtomicLevelAt(l.level),
 		OutputPaths:      []string{"stderr"},
 		ErrorOutputPaths: []string{"stderr"},
 		EncoderConfig: zapcore.EncoderConfig{

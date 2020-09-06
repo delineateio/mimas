@@ -1,10 +1,9 @@
-package containers
+package server
 
 import (
-	"time"
-
-	config "github.com/delineateio/mimas/config"
-	log "github.com/delineateio/mimas/log"
+	c "github.com/delineateio/mimas/cors"
+	"github.com/delineateio/mimas/log"
+	"github.com/delineateio/mimas/routes"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -19,6 +18,7 @@ func (s *Server) createRouter() *gin.Engine {
 
 	// Adds healthz at the route
 	log.Info("server.router.create", "created the GIN router")
+	s.routes = routes.AddDefaultRoutes(s.routes)
 
 	// Adds the routes
 	if s.routes != nil {
@@ -33,12 +33,13 @@ func (s *Server) createRouter() *gin.Engine {
 
 func addCORS(router *gin.Engine) {
 	// Sets the CORS parameters
-	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = config.GetStrings("server.cors.allow_origins")
-	corsConfig.AllowMethods = config.GetStrings("server.cors.allow_methods")
-	corsConfig.AllowHeaders = config.GetStrings("server.cors.allow_headers")
-	corsConfig.ExposeHeaders = config.GetStrings("server.cors.expose_headers")
-	corsConfig.AllowCredentials = config.GetBool("server.cors.allow_credentials", false)
-	corsConfig.MaxAge = config.GetDuration("server.cors.allow_credentials", time.Hour)
-	router.Use(cors.New(corsConfig))
+	settings := cors.DefaultConfig()
+	corsConfig := c.NewCORSConfig()
+	settings.AllowOrigins = corsConfig.AllowOrigins
+	settings.AllowMethods = corsConfig.AllowMethods
+	settings.AllowHeaders = corsConfig.AllowHeaders
+	settings.ExposeHeaders = corsConfig.ExposeHeaders
+	settings.AllowCredentials = corsConfig.AllowCredentials
+	settings.MaxAge = corsConfig.MaxAge
+	router.Use(cors.New(settings))
 }

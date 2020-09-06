@@ -1,4 +1,4 @@
-package database
+package db
 
 import (
 	"time"
@@ -9,7 +9,8 @@ import (
 const maxIdle = 20
 const maxOpen = 50
 const maxLifetime = 60 * time.Second
-const attempts = 3
+const attemptsInt = 3
+const attempts = uint(attemptsInt)
 const delay = 500 * time.Millisecond
 
 // Settings for the database connection

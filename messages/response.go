@@ -2,9 +2,6 @@ package messages
 
 import (
 	"encoding/json"
-	"net/http"
-
-	log "github.com/delineateio/mimas/log"
 )
 
 // Response generically represents outputs from the service
@@ -27,12 +24,30 @@ func addJSONHeaders() map[string]string {
 	return headers
 }
 
-// ToJSON object to byte array
-func (response *Response) ToJSON() []byte {
-	body, err := json.Marshal(response.Body)
-	if err != nil {
-		log.Error("request.error", err)
-		response.Code = http.StatusInternalServerError
+// HasBody indicates if the response has a body
+func (response *Response) HasBody() bool {
+	return response.Body != nil
+}
+
+// IsValid indicates if the body is validate
+func (response *Response) IsValid() bool {
+	input := response.ToBytes()
+	if input == nil {
+		return true
 	}
-	return body
+	var container map[string]interface{}
+	err := json.Unmarshal(input, &container)
+	return err == nil
+}
+
+// ToBytes object to byte array
+func (response *Response) ToBytes() []byte {
+	if response.Body == nil {
+		return nil
+	}
+	data, err := json.Marshal(response.Body)
+	if err != nil {
+		return nil
+	}
+	return data
 }

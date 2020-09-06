@@ -5,11 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Container | HelloWorld",
+            "name": "Example | Container",
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${workspaceFolder}/examples/container/container.go",
+            "program": "${workspaceFolder}/examples/container",
             "envFile": "${workspaceFolder}/examples/debug.env",
         }
     ]

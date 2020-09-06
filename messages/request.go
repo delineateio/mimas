@@ -6,12 +6,17 @@ import (
 )
 
 // NewRequest Creates a new generic request
-func NewRequest(method string, headers map[string][]string) *Request {
+func NewRequest(method string, headers map[string][]string) (*Request, error) {
+	// Validate the method
+	err := ValidateMethod(method)
+	if err != nil {
+		return nil, err
+	}
 	return &Request{
 		Method:  method,
 		Headers: headers,
 		Body:    make(map[string]interface{}),
-	}
+	}, nil
 }
 
 // Request generically represents inputs to the service

@@ -1,11 +1,11 @@
-package database
+package db
 
 import (
 	"database/sql"
 	"fmt"
 
 	"github.com/avast/retry-go"
-	log "github.com/delineateio/mimas/log"
+	"github.com/delineateio/mimas/log"
 
 	// required for the postgres driver
 	_ "github.com/lib/pq"
@@ -27,12 +27,15 @@ type Repository struct {
 }
 
 // NewRepository returns production database access
-func NewRepository() *Repository {
-	info := NewInfo()
+func NewRepository(name, username, password string) (*Repository, error) {
+	info, err := NewInfo(name, username, password)
+	if err != nil {
+		return nil, err
+	}
 	return &Repository{
 		info:     info,
 		settings: NewSettings(info.Name),
-	}
+	}, nil
 }
 
 func (r *Repository) setDB() error {
@@ -42,6 +45,7 @@ func (r *Repository) setDB() error {
 		log.Error("db.connection", err)
 		return err
 	}
+	r.core = db
 	r.db, err = db.DB()
 	if err != nil {
 		log.Error("db.connection", err)
@@ -64,6 +68,15 @@ func (r *Repository) Ping() error {
 // Open the database and sets the underlying configuration
 func (r *Repository) Open() error {
 	tries := 0
+
+	opts := []retry.Option{
+		retry.Attempts(r.settings.Attempts),
+		retry.Delay(r.settings.Delay),
+		retry.OnRetry(func(try uint, err error) {
+			log.Warn("db.open.error", "failed on attempt "+fmt.Sprint(try+1))
+		}),
+	}
+
 	err := retry.Do(
 		func() error {
 			tries++
@@ -73,11 +86,7 @@ func (r *Repository) Open() error {
 			}
 			return nil
 		},
-		retry.Attempts(r.settings.Attempts),
-		retry.Delay(r.settings.Delay),
-		retry.OnRetry(func(try uint, err error) {
-			log.Warn("db.open.error", "failed on attempt "+fmt.Sprint(try+1))
-		}),
+		opts...,
 	)
 	if err != nil {
 		log.Error("db.open.error", err)
@@ -93,24 +102,24 @@ func (r *Repository) Open() error {
 }
 
 // Migrate placeholder for service specific migration
-func (r *Repository) Migrate(entity interface{}) error {
+func (r *Repository) Migrate(entities []interface{}) error {
+	if entities == nil {
+		log.Warn("db.migrate.entities", "no db entities were provided to be migrated")
+		return nil
+	}
 	err := r.Open()
 	if err != nil {
 		return err
 	}
-	err = r.core.AutoMigrate(entity)
+	err = r.core.AutoMigrate(entities...)
 	if err != nil {
 		// better to report the earlier error
 		log.Error("db.migrate.error", err)
 		_ = r.Close()
 		return err
 	}
-	err = r.Close()
-	if err != nil {
-		return err
-	}
 	log.Info("db.migrate", "successfully migrated the db")
-	return nil
+	return r.Close()
 }
 
 // Create the entity in the database
@@ -119,22 +128,17 @@ func (r *Repository) Create(entity interface{}) error {
 	if err != nil {
 		return err
 	}
-
 	err = r.core.Create(entity).Error
 	if err != nil {
 		log.Error("db.create", err)
 	}
-
 	return r.Close()
 }
 
 // Close the DB connection
 func (r *Repository) Close() error {
-	err := r.db.Close()
-	if err != nil {
-		log.Error("db.close.error", err)
-		return err
+	if r.db == nil {
+		return nil
 	}
-
-	return nil
+	return r.db.Close()
 }

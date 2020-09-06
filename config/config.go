@@ -4,61 +4,41 @@ import (
 	"strconv"
 	"time"
 
-	log "github.com/delineateio/mimas/log"
-	"github.com/fsnotify/fsnotify"
+	"github.com/delineateio/mimas/log"
+	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 )
 
 // IConfigurator interface for injectiong configuration set up
 type IConfigurator interface {
-	Load(func(in fsnotify.Event))
+	Load()
 }
 
 // NewConfigurator gets a new production configurator
-func NewConfigurator(env, location string) *Configurator {
-	if env == "" {
-		env = "io"
+func NewConfigurator(env, location string, fs afero.Fs) *Configurator {
+	return &Configurator{
+		Env:       env,
+		Location:  location,
+		Fs:        fs,
+		Extension: "yml",
 	}
-
-	if location == "" {
-		location = "/config"
-	}
-
-	var configurator = &Configurator{
-		Env:      env,
-		Location: location,
-	}
-
-	return configurator
 }
 
 // Configurator sets up configuration in production
 type Configurator struct {
-	Env      string
-	Location string
+	Env       string
+	Location  string
+	Fs        afero.Fs
+	Extension string
 }
 
 // Load loads without a callback
 func (c *Configurator) Load() {
-	c.LoadWithCallback(nil)
-}
-
-// LoadWithCallback loads up the configuration from the sources
-func (c *Configurator) LoadWithCallback(reload func(in fsnotify.Event)) {
-	viper.SetConfigType("yml")
+	viper.SetFs(c.Fs)
+	viper.SetConfigType(c.Extension)
 	viper.SetConfigName(c.Env)
 	viper.AddConfigPath(c.Location)
-
-	// Adds the func for callback (if provided)
 	viper.WatchConfig()
-	if reload != nil {
-		viper.OnConfigChange(reload)
-
-		// This will use the new log level that has been set
-		log.Info("configuration.reload", "the configiration has been reload")
-	}
-
-	// Panics if can't be read correctly
 	err := viper.ReadInConfig()
 	if err != nil {
 		panic(err)
@@ -151,10 +131,10 @@ func GetUint(key string, defaultNumber uint) uint {
 }
 
 // GetStrings gets a list of values
-func GetStrings(key string) []string {
+func GetStrings(key string, defaultValues []string) []string {
 	// Returns empty if key not found
 	if !Exists(key) {
-		return []string{}
+		return defaultValues
 	}
 	wrapper := viper.Get(key)
 	objects := wrapper.([]interface{})

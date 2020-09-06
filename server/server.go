@@ -1,17 +1,17 @@
-package containers
+package server
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
-	config "github.com/delineateio/mimas/config"
-	db "github.com/delineateio/mimas/database"
-	log "github.com/delineateio/mimas/log"
-	messages "github.com/delineateio/mimas/messages"
-	"github.com/fsnotify/fsnotify"
+	"github.com/delineateio/mimas/config"
+	"github.com/delineateio/mimas/db"
+	"github.com/delineateio/mimas/environment"
+	"github.com/delineateio/mimas/log"
+	"github.com/delineateio/mimas/routes"
 	"github.com/fvbock/endless"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/afero"
 )
 
 // Server represents the encapulsation of a service
@@ -24,19 +24,17 @@ type Server struct {
 	Repository   db.IRepository
 	mode         string
 	router       *gin.Engine
-	routes       []messages.Route
+	routes       []routes.Route
 }
 
 // NewServer creates a new server
-func NewServer(routes []messages.Route) *Server {
+func NewServer(current []routes.Route) *Server {
 	// Gets env
-	env := os.Getenv("DIO_ENV")
-	location := os.Getenv("DIO_LOCATION")
-
+	env := environment.NewEnv()
 	server := &Server{
-		Env:      env,
-		Location: location,
-		routes:   routes,
+		Env:      env.Read("DIO_ENV", "io"),
+		Location: env.Read("DIO_LOCATION", "/config"),
+		routes:   current,
 	}
 	server.Configure()
 	return server
@@ -44,8 +42,10 @@ func NewServer(routes []messages.Route) *Server {
 
 // Configure returns the router that will be returned
 func (s *Server) Configure() {
-	config.NewConfigurator(s.Env, s.Location)
-	s.Configurator.LoadWithCallback(s.Reload)
+	config.NewConfigurator(s.Env, s.Location, afero.NewOsFs())
+	s.setLogger()
+	s.setMode()
+	s.setTimeOuts()
 }
 
 func (s *Server) setLogger() {
@@ -70,15 +70,6 @@ func (s *Server) setTimeOuts() {
 	endless.DefaultWriteTimeOut = timeOuts.write
 	endless.DefaultHammerTime = timeOuts.hammer
 	log.Info("server.timeouts", "server timeout configuration completed")
-}
-
-// Reload callback for if the server is restarted
-func (s *Server) Reload(in fsnotify.Event) {
-	s.setLogger()
-	s.setMode()
-	s.setTimeOuts()
-
-	config.NewConfigurator(s.Env, s.Location).LoadWithCallback(s.Reload)
 }
 
 // Listen the server and ensure it's configured
